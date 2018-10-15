@@ -26,6 +26,7 @@
  */
 
 #include <stdio.h>
+#include <stdlib.h>
 #include <time.h>
 
 #define START_YEAR	1970
@@ -33,7 +34,7 @@
 
 const int months[] = {0, 31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31};
 
-int sum_of_range (int low, int high, int (*term) (int x), int (*next) (int x))
+int sum_of_range (int low, int high, int (*term) (int), int (*next) (int))
 {
 	int i, result = 0;
 
@@ -98,6 +99,56 @@ void calendar (int days, int year, int month)
 	printf ("\n\n");
 }
 
+int check_argc (int argc)
+{
+	return argc > 2;
+}
+
+int is_number (char *target)
+{
+	while (*target != '\0' && *target >= '0' && *target <= '9')
+		target++;
+
+	return *target == '\0';
+}
+
+int check_arg1 (char *arg)
+{
+
+	if (!is_number (arg)) return 1;
+
+	return atoi (arg) < 0;
+}
+
+int check_arg2 (char *arg)
+{
+	if (!is_number (arg)) return 1;
+
+	return atoi (arg) < 1 || atoi (arg) > 12;
+}
+
+int check (int argc, char **argv, int (*check_argc) (int), int (*check_args[]) (char *))
+{
+	int i;
+
+	if ((*check_argc) (argc))	return 1;
+
+	if (argc > 0)
+	{
+		for (i = 0; i < argc && !(*check_args) (argv[i]); i++, check_args++)
+			;
+	}
+
+	return i != argc;
+}
+
+void usage ()
+{
+	printf ("Usage: calendar [year] [month]\n");
+	printf ("\tyear >= 1970\n");
+	printf ("\tmonth >= 1 and month <= 12\n");
+}
+
 int main (int argc, char **argv)
 {
 	int year = 0, month = 0;
@@ -106,12 +157,20 @@ int main (int argc, char **argv)
 	struct tm *time_ptr;
 	time_t timeval;
 
-	(void)time (&timeval);
-	time_ptr = localtime (&timeval);
+	int (*func_ptrs[]) (char *) = {check_arg1, check_arg2, NULL};
+
+	if (check (argc-1, &argv[1], check_argc, func_ptrs))
+	{
+		usage ();
+		return 1;
+	}
 
 	switch (argc)
 	{
 		case 1:
+			(void)time (&timeval);
+			time_ptr = localtime (&timeval);
+
 			year = time_ptr->tm_year + 1900;
 			month = time_ptr->tm_mon + 1;
 			days += days_of_year (START_YEAR, year-1);
